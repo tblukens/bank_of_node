@@ -418,7 +418,7 @@ const transferFunds = (from, to, amount) => {
                     let currentSavings = results[0].savings;
                     currentChecking -= amount;
                     currentSavings += amount;
-                    
+
                     connection.query('UPDATE users SET `checking` = ?, `savings` = ? WHERE user_name = ?', [currentChecking, currentSavings, userNameSave], function (error, results, fields) {
                         if (error) throw error;
                         console.log(`\n${separator}\n$ ${amount} transferred from ${from} account to ${to} account.\nNew balances:\nSavings: ${currentSavings}\nChecking: ${currentChecking}\n${separator}\n`)
@@ -430,7 +430,7 @@ const transferFunds = (from, to, amount) => {
                 }
             });
             break;
-            case 'savings':
+        case 'savings':
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
                 if (results[0].savings - amount >= 0) {
@@ -438,7 +438,7 @@ const transferFunds = (from, to, amount) => {
                     let currentSavings = results[0].savings;
                     currentChecking += amount;
                     currentSavings -= amount;
-                    
+
                     connection.query('UPDATE users SET `checking` = ?, `savings` = ? WHERE user_name = ?', [currentChecking, currentSavings, userNameSave], function (error, results, fields) {
                         if (error) throw error;
                         console.log(`\n${separator}\n$ ${amount} transferred from ${from} account to ${to} account.\nNew balances:\nSavings: ${currentSavings}\nChecking: ${currentChecking}\n${separator}\n`)
@@ -481,7 +481,7 @@ const endSession = function () {
     connection.end()
 }
 
-// connection query function using command????
+// connection query function using command
 const conQuery = (command, amount) => {
     // console.log(command)
     switch (command) {
@@ -510,14 +510,20 @@ const conQuery = (command, amount) => {
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
                 // console.log(results[0].checking)
-                let currentChecking = results[0].checking;
-                currentChecking -= amount;
+                if (results[0].checking - amount >= 0) {
+                    let currentChecking = results[0].checking;
+                    currentChecking -= amount;
 
-                connection.query('UPDATE users SET `checking` = ? WHERE user_name = ?', [currentChecking, userNameSave], function (error, results, fields) {
-                    if (error) throw error;
-                    console.log(`\n${separator}\nWithdrew ${amount} from Checking account. New balance is ${currentChecking}\n${separator}\n`)
+                    connection.query('UPDATE users SET `checking` = ? WHERE user_name = ?', [currentChecking, userNameSave], function (error, results, fields) {
+                        if (error) throw error;
+                        console.log(`\n${separator}\nWithdrew ${amount} from Checking account. New balance is ${currentChecking}\n${separator}\n`)
+                        continueSession();
+                    });
+
+                } else {
+                    console.log(`Sorry, insufficient funds. Withdrawing ${amount} from Checking account would overdraw you.`)
                     continueSession();
-                });
+                }
             });
             break;
         case 'balance_savings':
@@ -544,15 +550,20 @@ const conQuery = (command, amount) => {
         case 'withdraw_savings':
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
-                let currentSavings = results[0].savings;
-                currentSavings -= amount;
+                if (results[0].savings - amount >= 0) {
+                    let currentSavings = results[0].savings;
+                    currentSavings -= amount;
 
-                connection.query('UPDATE users SET `savings` = ? WHERE user_name = ?', [currentSavings, userNameSave], function (error, results, fields) {
-                    if (error) throw error;
-                    console.log(`\n${separator}\nWithdrew ${amount} from Savings account. New balance is ${currentSavings}\n${separator}\n`)
+                    connection.query('UPDATE users SET `savings` = ? WHERE user_name = ?', [currentSavings, userNameSave], function (error, results, fields) {
+                        if (error) throw error;
+                        console.log(`\n${separator}\nWithdrew ${amount} from Savings account. New balance is ${currentSavings}\n${separator}\n`)
+                        continueSession();
+
+                    });
+                } else {
+                    console.log(`Sorry, insufficient funds. Withdrawing ${amount} from Savings account would overdraw you.`)
                     continueSession();
-
-                });
+                }
             });
             break;
 
@@ -565,6 +576,9 @@ const conQuery = (command, amount) => {
     // });
 }
 
+const overdrawAccount = (withdrawAmount, accountBalance) => {
+
+}
 
 
 // start session
