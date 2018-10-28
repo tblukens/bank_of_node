@@ -6,6 +6,8 @@ const inquirer = require('inquirer');
 const validator = require('validator');
 // mysql module to help connect to database
 const mysql = require('mysql');
+// chalk to style command line
+const chalk = require('chalk');
 // creating connection with db credentials
 const connection = mysql.createConnection({
     host: process.env.DB_HOST,
@@ -19,7 +21,20 @@ let userNameSave;
 let pinSave;
 let successfulLogin = false;
 
-const separator = "\n" + "-".repeat(75) + "\n";
+const separator = (color,length) => {console.log(color("\n" + "-".repeat(length) + "\n"))}
+
+const mainText = (text) => {
+    let repeater = text.length+20;
+    console.log(repeater)
+    separator(chalk.green,repeater)
+    console.log(chalk.bgGreen.black(" ".repeat(10)+text.toUpperCase()+" ".repeat(10)))
+    separator(chalk.green,repeater)
+}
+const errorText = (text) => {
+    separator(chalk.red)
+    console.log(chalk.bgRed(" ".repeat(repeater)+text.toUpperCase()+" ".repeat(repeater)))
+    separator(chalk.red)
+}
 
 //-------------------------------------------
 //             USER FUNCTIONS
@@ -30,13 +45,12 @@ const userNamePrompt = function () {
         message: "What is your accounts user name:",
         name: "name",
     }]).then(user => {
-        // console.log("\nUsername: " + user.name.toLowerCase())
         // query database for user if they exist
         connection.query('SELECT * FROM users WHERE user_name = ?', [user.name.toLowerCase()], function (error, results, fields) {
             if (error) throw error;
             // if user doesnt exist then we will run create user function
             if (results[0] === undefined) {
-                console.log("No user with that username exists.")
+                errorText("No user with that username exists.")
                 createUserPrompt(user.name.toLowerCase());
             } else if (results[0].user_name.toLowerCase() === user.name.toLowerCase()) {
                 // else if user exists prompt for PIN to login
@@ -54,13 +68,13 @@ const pinNumberPrompt = function (username, pin) {
     }]).then(user => {
         let floatPin = parseFloat(user.pin);
         if (floatPin === pin) {
-            console.log(`${separator}Logged in as ${username}${separator}`)
+            mainText(`Logged in as ${username}`);
             successfulLogin = true;
             userNameSave = username;
             pinSave = pin;
             whichCommand();
         } else {
-            console.log(`${separator}Sorry, Incorrect PIN${separator}`)
+            errorText('Sorry, incorrect PIN')
             userNamePrompt();
         }
     })
@@ -80,7 +94,7 @@ const createUserPrompt = function (username) {
             createUser(username);
             // else we thank them and end the sessions 
         } else {
-            console.log(`${separator}Thank you! Have a nice day!${separator}`)
+            mainText(`Thank you! Have a nice day!`);
             endSession();
             return false;
         }
@@ -100,18 +114,18 @@ const createUser = function (username) {
         // console.log(pin.length)
         // check pin to see if it is 5 digits
         if (pin < 10000 || pin > 99999) {
-            console.log(`${separator}Sorry we need a 5 digit pin number...${separator}`)
+            errorText('Sorry we need a 5 digit pin number...')
             createUser(username);
         } // if the pin entered is not an actual number run createuser again
         else if (numcheck === false) {
-            console.log(`${separator}Sorry we need a 5 digit pin number...${separator}`)
+            errorText('Sorry we need a 5 digit pin number...')
             createUser(username);
         } // else we will create user and input into database
         else {
             connection.query(sql, (err, result) => {
                 if (err) throw err;
                 // console.log(result);
-                console.log(`${separator}User [${username}] created. Please login using your username and pin.${separator}`);
+                mainText(`User [${username}] created. Please login using your username and pin.`);
                 userNamePrompt();
             })
         }
@@ -120,7 +134,6 @@ const createUser = function (username) {
     });
 }
 //-------------------------------------------
-
 
 
 // ask user what command they would like to use:
@@ -134,19 +147,19 @@ const whichCommand = function () {
     }]).then(which => {
         switch (which.command) {
             case 'Check Balances':
-                console.log(`${separator}Checking Balances${separator}`);
+                // mainText(`Checking Balances`);
                 whichAccount(which.command);
                 break;
             case 'Deposit':
-                console.log(`${separator}Making Deposit${separator}`);
+                // mainText(`Making Deposit`);
                 whichAccount(which.command);
                 break;
             case 'Withdraw':
-                console.log(`${separator}Making Withdrawal${separator}`);
+                // console.log(`${separator}Making Withdrawal${separator}`);
                 whichAccount(which.command);
                 break;
             case 'Transfer Balance':
-                console.log(`${separator}Transferring from one account to another.${separator}`);
+                // console.log(`${separator}Transferring money.${separator}`);
                 moneyTransfer(which.command);
                 break;
 
@@ -158,9 +171,9 @@ const whichCommand = function () {
 
 const whichAccount = (command) => {
     inquirer.prompt([{
-        message: `Which account would you like to ${command} ${userNameSave}?`,
+        message: chalk.yellow(`Which account would you like to ${command} ${userNameSave}?`),
         type: "list",
-        choices: ['Checking', 'Savings'],
+        choices: ['Checking','Savings'],
         name: 'account'
     }]).then(which => {
         switch (command) {
@@ -193,14 +206,13 @@ const checkBalance = function (account) {
     switch (account) {
         case 'Checking':
 
-            // console.log("Checking Balance: ");
-            conQuery("balance_checking")
+            conQuery("balance_checking");
             break;
 
         case 'Savings':
 
             // console.log("Savings Balance: ");
-            conQuery("balance_savings")
+            conQuery("balance_savings");
             break;
 
         default:
@@ -229,7 +241,7 @@ const depositFunds = function (account) {
                         if (intCheck === true) {
                             conQuery('deposit_checking', parsedAmount)
                         } else {
-                            console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                            errorText('Please enter a valid dollar amount.')
                             depositFunds('Checking')
                         }
                     })
@@ -238,9 +250,9 @@ const depositFunds = function (account) {
                     let parsedAmount = parseFloat(deposit.amount);
                     conQuery('deposit_checking', parsedAmount)
                 }
-
+                
                 break;
-            case 'Savings':
+                case 'Savings':
                 if (deposit.amount === 'other') {
                     inquirer.prompt([{
                         message: `Enter in a dollar amount you would like to deposit.`,
@@ -251,7 +263,7 @@ const depositFunds = function (account) {
                         if (intCheck === true) {
                             conQuery('deposit_savings', parsedAmount)
                         } else {
-                            console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                            errorText('Please enter a valid dollar amount.')
                             depositFunds('Savings')
                         }
                     })
@@ -291,7 +303,7 @@ const withdrawFunds = function (account) {
                         if (intCheck === true) {
                             conQuery('withdraw_checking', parsedAmount)
                         } else {
-                            console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                            errorText('Please enter a valid dollar amount.')
                             withdrawFunds('Checking')
                         }
                     })
@@ -300,9 +312,9 @@ const withdrawFunds = function (account) {
                     let parsedAmount = parseFloat(withdraw.amount);
                     conQuery('withdraw_checking', parsedAmount)
                 }
-
+                
                 break;
-            case 'Savings':
+                case 'Savings':
                 if (withdraw.amount === 'other') {
                     inquirer.prompt([{
                         message: `Enter in a dollar amount you would like to withdraw.`,
@@ -313,7 +325,7 @@ const withdrawFunds = function (account) {
                         if (intCheck === true) {
                             conQuery('withdraw_savings', parsedAmount)
                         } else {
-                            console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                            errorText('Please enter a valid dollar amount.')
                             withdrawFunds('Savings')
                         }
                     })
@@ -345,7 +357,7 @@ const moneyTransfer = function () {
         name: 'to'
     }]).then(accounts => {
         if (accounts.from === accounts.to) {
-            console.log(`${separator}Sorry, you cannot transfer into the same account that you are transferring from.${separator}`)
+            errorText('Sorry you cannot transfer to the same account you are transferring from.')
             continueSession();
         } else {
             inquirer.prompt([{
@@ -366,7 +378,7 @@ const moneyTransfer = function () {
                                 if (intCheck === true) {
                                     transferFunds('checking', 'savings', parsedAmount)
                                 } else {
-                                    console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                                    errorText('Please enter a valid dollar amount.')
                                     continueSession();
                                 }
                             })
@@ -388,7 +400,7 @@ const moneyTransfer = function () {
                                 if (intCheck === true) {
                                     transferFunds('savings', 'checking', parsedAmount)
                                 } else {
-                                    console.log(`\n${separator}\nPlease enter a valid dollar amount.\n${separator}\n`)
+                                    errorText('Please enter a valid dollar amount.')
                                     continueSession();
                                 }
                             })
@@ -421,11 +433,11 @@ const transferFunds = (from, to, amount) => {
 
                     connection.query('UPDATE users SET `checking` = ?, `savings` = ? WHERE user_name = ?', [currentChecking, currentSavings, userNameSave], function (error, results, fields) {
                         if (error) throw error;
-                        console.log(`\n${separator}\n$ ${amount} transferred from ${from} account to ${to} account.\nNew balances:\nSavings: ${currentSavings}\nChecking: ${currentChecking}\n${separator}\n`)
+                        mainText(`$${amount} transferred from ${from} account to ${to} account. New balances - Savings: $${currentSavings} Checking: $${currentChecking}`)
                         continueSession();
                     });
                 } else {
-                    console.log(`${separator}Sorry, you have insufficient funds. Taking $ ${amount} from Checking account would overdraw your account.${separator}`)
+                    errorText(`Sorry, you have insufficient funds. Taking $${amount} from ${from} account would overdraw your account.`)
                     continueSession();
                 }
             });
@@ -441,11 +453,11 @@ const transferFunds = (from, to, amount) => {
 
                     connection.query('UPDATE users SET `checking` = ?, `savings` = ? WHERE user_name = ?', [currentChecking, currentSavings, userNameSave], function (error, results, fields) {
                         if (error) throw error;
-                        console.log(`\n${separator}\n$ ${amount} transferred from ${from} account to ${to} account.\nNew balances:\nSavings: ${currentSavings}\nChecking: ${currentChecking}\n${separator}\n`)
+                        mainText(`$${amount} transferred from ${from} account to ${to} account. New balances - Savings: $${currentSavings} Checking: $${currentChecking}`)
                         continueSession();
                     });
                 } else {
-                    console.log(`${separator}Sorry, you have insufficient funds. Taking $ ${amount} from Savings account would overdraw your account.${separator}`)
+                    errorText(`Sorry, you have insufficient funds. Taking $${amount} from ${from} account would overdraw your account.`)
                     continueSession();
                 }
             });
@@ -483,12 +495,11 @@ const endSession = function () {
 
 // connection query function using command
 const conQuery = (command, amount) => {
-    // console.log(command)
     switch (command) {
         case 'balance_checking':
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
-                console.log(`${separator}Checking Account Balance: ${results[0].checking}${separator}`);
+                mainText(`Checking Account Balance: $${results[0].checking}`);
                 continueSession();
             });
             break;
@@ -501,7 +512,7 @@ const conQuery = (command, amount) => {
 
                 connection.query('UPDATE users SET `checking` = ? WHERE user_name = ?', [currentChecking, userNameSave], function (error, results, fields) {
                     if (error) throw error;
-                    console.log(`\n${separator}\nDeposited ${amount} into Checking account. New balance is ${currentChecking}\n${separator}\n`)
+                    mainText(`Deposited $${amount} into Checking account. New balance is $${currentChecking}`)
                     continueSession();
                 });
             });
@@ -516,12 +527,12 @@ const conQuery = (command, amount) => {
 
                     connection.query('UPDATE users SET `checking` = ? WHERE user_name = ?', [currentChecking, userNameSave], function (error, results, fields) {
                         if (error) throw error;
-                        console.log(`\n${separator}\nWithdrew ${amount} from Checking account. New balance is ${currentChecking}\n${separator}\n`)
+                        mainText(`Withdrew $${amount} from Checking account. New balance is $${currentChecking}`)
                         continueSession();
                     });
 
                 } else {
-                    console.log(`Sorry, insufficient funds. Withdrawing ${amount} from Checking account would overdraw you.`)
+                    errorText(`Sorry, insufficient funds. Withdrawing $${amount} from Checking account would overdraw you.`)
                     continueSession();
                 }
             });
@@ -529,7 +540,7 @@ const conQuery = (command, amount) => {
         case 'balance_savings':
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
-                console.log(`${separator}Savings Account Balance: ${results[0].savings}${separator}`);
+                mainText(`Savings Account Balance: $${results[0].savings}`)
                 continueSession();
             });
             break;
@@ -541,7 +552,7 @@ const conQuery = (command, amount) => {
 
                 connection.query('UPDATE users SET `savings` = ? WHERE user_name = ?', [currentSavings, userNameSave], function (error, results, fields) {
                     if (error) throw error;
-                    console.log(`\n${separator}\nDeposited ${amount} into Savings account. New balance is ${currentSavings}\n${separator}\n`)
+                    mainText(`Deposited $${amount} into Savings account. New balance is $${currentSavings}`)
                     continueSession();
 
                 });
@@ -556,12 +567,12 @@ const conQuery = (command, amount) => {
 
                     connection.query('UPDATE users SET `savings` = ? WHERE user_name = ?', [currentSavings, userNameSave], function (error, results, fields) {
                         if (error) throw error;
-                        console.log(`\n${separator}\nWithdrew ${amount} from Savings account. New balance is ${currentSavings}\n${separator}\n`)
+                        mainText(`Withdrew $${amount} from Savings account. New balance is $${currentSavings}`)
                         continueSession();
 
                     });
                 } else {
-                    console.log(`Sorry, insufficient funds. Withdrawing ${amount} from Savings account would overdraw you.`)
+                    errorText(`Sorry, insufficient funds. Withdrawing $${amount} from Savings account would overdraw you.`)
                     continueSession();
                 }
             });
@@ -576,14 +587,14 @@ const conQuery = (command, amount) => {
     // });
 }
 
-const overdrawAccount = (withdrawAmount, accountBalance) => {
+// might use later for refactoring
+// const overdrawAccount = (withdrawAmount, accountBalance) => {
 
-}
-
+// }
 
 // start session
 connection.connect(function (err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId + "\n\n");
+    console.log(chalk.yellow("connected as id " + connection.threadId + "\n\n"));
     userNamePrompt();
 });
