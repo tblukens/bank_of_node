@@ -33,7 +33,7 @@ const mainText = (text) => {
 const errorText = (text) => {
     let repeater = text.length+20;
     separator(chalk.red,repeater)
-    console.log(chalk.bgRed(" ".repeat(repeater)+text.toUpperCase()+" ".repeat(repeater)))
+    console.log(chalk.bgRed(" ".repeat(10)+text.toUpperCase()+" ".repeat(10)))
     separator(chalk.red,repeater)
 }
 
