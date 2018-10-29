@@ -16,7 +16,7 @@ PRIMARY KEY (id)
 );
 
 INSERT INTO users (`user_name`, `pin`, `checking_opened`, `saving_opened`, `checking`, `savings`)
-values ("tlukens", 55555, true, true, 5000, 10000);
+values ("tlukens", 12345, true, true, 5000, 10000);
 
 INSERT INTO users (`user_name`, `pin`, `checking`, `savings`)
-values ("trevdawg", 10101, 333, 1052);
+values ("shan123", 10101, 333, 1052);

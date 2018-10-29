@@ -31,9 +31,10 @@ const mainText = (text) => {
     separator(chalk.green,repeater)
 }
 const errorText = (text) => {
-    separator(chalk.red)
+    let repeater = text.length+20;
+    separator(chalk.red,repeater)
     console.log(chalk.bgRed(" ".repeat(repeater)+text.toUpperCase()+" ".repeat(repeater)))
-    separator(chalk.red)
+    separator(chalk.red,repeater)
 }
 
 //-------------------------------------------
