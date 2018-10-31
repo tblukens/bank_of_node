@@ -21,11 +21,12 @@ let userNameSave;
 let pinSave;
 let successfulLogin = false;
 
+
+/* *********** These functions are used to log nicer looking text to console ********* */
 const separator = (color,length) => {console.log(color("\n" + "-".repeat(length) + "\n"))}
 
 const mainText = (text) => {
     let repeater = text.length+20;
-    console.log(repeater)
     separator(chalk.green,repeater)
     console.log(chalk.bgGreen.black(" ".repeat(10)+text.toUpperCase()+" ".repeat(10)))
     separator(chalk.green,repeater)
@@ -35,7 +36,7 @@ const errorText = (text) => {
     separator(chalk.red,repeater)
     console.log(chalk.bgRed(" ".repeat(10)+text.toUpperCase()+" ".repeat(10)))
     separator(chalk.red,repeater)
-}
+} /* *********************************************************************** */
 
 //-------------------------------------------
 //             USER FUNCTIONS
@@ -146,6 +147,7 @@ const whichCommand = function () {
         choices: ['Check Balances', 'Deposit', 'Withdraw', 'Transfer Balance'],
         name: 'command',
     }]).then(which => {
+        // the command is then passed into a function to choose which account
         switch (which.command) {
             case 'Check Balances':
                 // mainText(`Checking Balances`);
@@ -170,6 +172,7 @@ const whichCommand = function () {
     })
 }
 
+// function receives command then asks user which account they'd like to use the command on
 const whichAccount = (command) => {
     inquirer.prompt([{
         message: chalk.yellow(`Which account would you like to ${command} ${userNameSave}?`),
@@ -177,6 +180,7 @@ const whichAccount = (command) => {
         choices: ['Checking','Savings'],
         name: 'account'
     }]).then(which => {
+        // command is then used to call a function passing through the account chosen
         switch (command) {
             case 'Check Balances':
 
@@ -202,7 +206,7 @@ const whichAccount = (command) => {
 
 }
 
-// check balance function
+// simple check balance function
 const checkBalance = function (account) {
     switch (account) {
         case 'Checking':
@@ -230,13 +234,16 @@ const depositFunds = function (account) {
         name: 'amount'
     }]).then(deposit => {
         // console.log(account + " " + deposit.amount)
-        switch (account) {
+        switch (account) { // switch depending on checking or savings being chosen
             case 'Checking':
                 if (deposit.amount === 'other') {
                     inquirer.prompt([{
                         message: `Enter in a dollar amount you would like to deposit.`,
                         name: `other`,
                     }]).then(amount => {
+                        // here i used validator to check if entered amount is integer... 
+                        // this was before i learned you can use a validate function
+                        // inside the inquirer prompts. OH WELL
                         let intCheck = validator.isInt(amount.other);
                         let parsedAmount = parseFloat(amount.other);
                         if (intCheck === true) {
@@ -282,7 +289,10 @@ const depositFunds = function (account) {
     })
 }
 
-// withdraw funds function
+// withdraw funds function. Much the same as deposit function
+// could probably refactor to make them both in one function
+// with just passing through account AND withdraw/deposit...
+// TODO: ^
 const withdrawFunds = function (account) {
 
     inquirer.prompt([{
@@ -357,10 +367,15 @@ const moneyTransfer = function () {
         choices: ['Checking', 'Savings'],
         name: 'to'
     }]).then(accounts => {
+        // making sure user choose account other than the one chosen. 
+        // Should probably just eliminate second option 
+        // and make this just auto choose the alternate account
+        // could add more accounts later though... hmm....
         if (accounts.from === accounts.to) {
             errorText('Sorry you cannot transfer to the same account you are transferring from.')
             continueSession();
         } else {
+            // after accounts are chosen we ask the user for an amount to transfer
             inquirer.prompt([{
                 message: `How much money would you like to transfer from ${accounts.from} to ${accounts.to}`,
                 type: 'list',
@@ -426,6 +441,7 @@ const transferFunds = (from, to, amount) => {
         case 'checking':
             connection.query('SELECT * FROM users WHERE user_name = ?', [userNameSave], function (error, results, fields) {
                 if (error) throw error;
+                // checks if user will go below 0 dollars when funds transfer
                 if (results[0].checking - amount >= 0) {
                     let currentChecking = results[0].checking;
                     let currentSavings = results[0].savings;
@@ -438,6 +454,7 @@ const transferFunds = (from, to, amount) => {
                         continueSession();
                     });
                 } else {
+                    // if funds would go below 0 the transaction is not allowed
                     errorText(`Sorry, you have insufficient funds. Taking $${amount} from ${from} account would overdraw your account.`)
                     continueSession();
                 }
@@ -495,6 +512,7 @@ const endSession = function () {
 }
 
 // connection query function using command
+// This function handles most of the actual database querys
 const conQuery = (command, amount) => {
     switch (command) {
         case 'balance_checking':
